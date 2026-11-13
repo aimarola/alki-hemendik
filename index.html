@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="eu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALKI — Hemendik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Gallery stone + ink, oak as material, one Basque green accent. Layout: split hero with live 3D, then numbered ledger sections. */
+  --bg: #ECEAE5;
+  --surface: #F5F4F0;
+  --ink: #17191A;
+  --muted: #5E625F;
+  --line: #CFCBC3;
+  --oak: #B98F63;
+  --accent: #2E4B3C;
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --gutter: clamp(16px, 4vw, 56px);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Header */
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 22px var(--gutter);
+  border-bottom: 1px solid var(--line);
+}
+.mark { display: flex; align-items: baseline; gap: 12px; text-decoration: none; }
+.mark b { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: 0.18em; }
+.mark span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.top nav { display: flex; gap: 28px; flex-wrap: wrap; }
+.top nav a { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; text-decoration: none; color: var(--muted); }
+.top nav a:hover { color: var(--ink); }
+
+/* Hero */
+.hero {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(24px, 4vw, 64px);
+  padding: clamp(32px, 5vw, 72px) var(--gutter) clamp(40px, 5vw, 72px);
+  align-items: stretch;
+}
+.hero-text { display: flex; flex-direction: column; justify-content: space-between; gap: 40px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+h1 {
+  font-family: var(--display); font-weight: 600; letter-spacing: -0.035em;
+  font-size: clamp(48px, 7.2vw, 112px); line-height: 0.92; margin: 18px 0 0;
+  text-wrap: balance;
+}
+h1 em { font-style: normal; font-weight: 300; color: var(--oak); }
+.lede { font-size: 19px; max-width: 34ch; color: var(--muted); margin: 0; }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+/* Viewer */
+.viewer {
+  position: relative; background: var(--surface); border: 1px solid var(--line);
+  min-height: 560px; display: flex; flex-direction: column;
+}
+.stage { position: relative; flex: 1; min-height: 420px; }
+.stage canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.stage .hint {
+  position: absolute; left: 20px; top: 18px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+  letter-spacing: 0.05em; pointer-events: none;
+}
+.stage .count { position: absolute; right: 20px; top: 18px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.fallback { position: absolute; inset: 0; display: none; place-items: center; padding: 32px; text-align: center; color: var(--muted); }
+.controls {
+  display: grid; grid-template-columns: 1fr auto; gap: 16px 24px; align-items: end;
+  padding: 18px 20px 20px; border-top: 1px solid var(--line);
+}
+.pieces { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); width: fit-content; }
+.pieces button {
+  font-family: var(--body); font-size: 14px; font-weight: 500; padding: 9px 16px;
+  background: transparent; border: 0; border-right: 1px solid var(--line); color: var(--muted); cursor: pointer;
+}
+.pieces button:last-child { border-right: 0; }
+.pieces button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.pieces button:hover:not([aria-pressed="true"]) { color: var(--ink); }
+.swatches { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.swatch-row { display: flex; gap: 8px; align-items: center; }
+.swatch-row .lbl { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: 4px; min-width: 52px; text-align: right; }
+.sw {
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.18); cursor: pointer; padding: 0;
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+.sw[aria-pressed="true"] { outline: 1.5px solid var(--ink); outline-offset: 2px; }
+.swatch-row[hidden] { display: none; }
+.caption { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.caption h2 { font-family: var(--display); font-weight: 600; font-size: 26px; letter-spacing: -0.02em; margin: 0; }
+.caption p { margin: 2px 0 0; color: var(--muted); font-size: 15px; max-width: 46ch; }
+.caption .tag { font-family: var(--mono); font-size: 11px; color: var(--muted); align-self: flex-start; padding-top: 8px; }
+
+/* Facts strip */
+.facts {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  margin: 0 var(--gutter);
+}
+.fact { padding: 26px 24px 26px 0; border-right: 1px solid var(--line); }
+.fact + .fact { padding-left: 24px; }
+.fact:last-child { border-right: 0; }
+.fact .v { font-family: var(--display); font-size: clamp(30px, 3.4vw, 46px); font-weight: 600; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.fact .k { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; }
+
+/* Ledger sections */
+main { padding: 0 var(--gutter); }
+.row {
+  display: grid; grid-template-columns: minmax(140px, 3fr) minmax(0, 9fr); gap: 32px;
+  padding: clamp(40px, 6vw, 88px) 0; border-bottom: 1px solid var(--line);
+}
+.row .num { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+.row .num b { display: block; color: var(--accent); font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+.row h3 {
+  font-family: var(--display); font-weight: 600; letter-spacing: -0.025em;
+  font-size: clamp(30px, 3.6vw, 52px); line-height: 1.02; margin: 0 0 24px; max-width: 18ch; text-wrap: balance;
+}
+.row p { max-width: 62ch; margin: 0 0 14px; }
+.cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 28px; border-top: 1px solid var(--line); }
+.cols > div { padding: 20px 20px 0 0; }
+.cols > div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+.cols h4 { font-family: var(--body); font-weight: 600; font-size: 16px; margin: 0 0 6px; }
+.cols p { font-size: 15px; color: var(--muted); margin: 0; }
+.designers { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); max-width: 760px; }
+.designers li { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.designers li:nth-child(odd) { padding-right: 20px; }
+.designers li:nth-child(even) { padding-left: 20px; border-left: 1px solid var(--line); }
+.designers span { font-family: var(--mono); font-size: 11px; color: var(--muted); align-self: center; }
+.designers li.lead { grid-column: 1 / -1; padding-left: 0; border-left: 0; }
+.designers li.lead strong { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+
+/* Team */
+.team { padding: clamp(48px, 6vw, 96px) var(--gutter) 32px; }
+.team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--ink); margin-top: 24px; }
+.member { padding: 20px 16px 0 0; }
+.member + .member { padding-left: 16px; border-left: 1px solid var(--line); }
+.member .n { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.member .name { font-family: var(--display); font-size: clamp(22px, 2.2vw, 30px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-top: 8px; }
+.foot {
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 24px var(--gutter) 40px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.foot a { color: var(--ink); }
+
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; }
+  .viewer { min-height: 520px; }
+  .facts { grid-template-columns: repeat(2, 1fr); }
+  .fact:nth-child(2) { border-right: 0; }
+  .fact:nth-child(3) { padding-left: 0; border-top: 1px solid var(--line); }
+  .fact:nth-child(4) { border-top: 1px solid var(--line); }
+  .row { grid-template-columns: 1fr; gap: 12px; }
+  .team-grid { grid-template-columns: repeat(2, 1fr); }
+  .member:nth-child(3) { padding-left: 0; border-left: 0; }
+  .member:nth-child(n+3) { margin-top: 20px; }
+}
+@media (max-width: 620px) {
+  .top nav { display: none; }
+  .controls { grid-template-columns: 1fr; }
+  .swatches { align-items: flex-start; }
+  .swatch-row .lbl { text-align: left; }
+  .cols { grid-template-columns: 1fr; }
+  .cols > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); margin-top: 16px; }
+  .designers { grid-template-columns: 1fr; }
+  .designers li:nth-child(even) { padding-left: 0; border-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="mark" href="#hasiera" aria-label="ALKI, Hemendik proiektua">
+    <b>ALKI</b><span>/ Hemendik proiektua</span>
+  </a>
+  <nav aria-label="Atalak">
+    <a href="#jatorria">01 Jatorria</a>
+    <a href="#materialak">02 Materialak</a>
+    <a href="#erabilerak">03 Erabilerak</a>
+    <a href="#diseinua">04 Diseinua</a>
+    <a href="#taldea">Taldea</a>
+  </nav>
+</header>
+
+<section class="hero" id="hasiera">
+  <div class="hero-text">
+    <div>
+      <div class="eyebrow">Itsasu, Lapurdi · 1981etik</div>
+      <h1>Euskal altzarigintza <em>garaikidea</em></h1>
+    </div>
+    <p class="lede"><strong>Alki kooperatiba bat da</strong>, Ipar Euskal Herrian sortua. Haritz masiboa, diseinu garaikidea eta tokiko lana uztartzen ditu, etxeetarako, bulegoetarako eta espazio publikoetarako altzariak sortzeko.</p>
+  </div>
+
+  <div class="viewer">
+    <div class="stage" id="stage">
+      <div class="hint">Arrastatu biratzeko · gurpila zoomerako</div>
+      <div class="count" id="count">01 / 04</div>
+      <div class="fallback" id="fallback">Zure nabigatzaileak ezin du 3D eredua erakutsi (WebGL ez dago eskuragarri).</div>
+    </div>
+    <div class="controls">
+      <div class="pieces" role="group" aria-label="Aukeratu pieza">
+        <button type="button" data-piece="chair" aria-pressed="true">Aulkia</button>
+        <button type="button" data-piece="stool" aria-pressed="false">Taburete altua</button>
+        <button type="button" data-piece="table" aria-pressed="false">Mahaia</button>
+        <button type="button" data-piece="bench" aria-pressed="false">Bankua</button>
+      </div>
+      <div class="swatches">
+        <div class="swatch-row" id="shellRow">
+          <span class="lbl">Kaskoa</span>
+          <button type="button" class="sw" data-shell="#E7E0D2" style="background:#E7E0D2" aria-label="Kaskoa: krema" aria-pressed="true"></button>
+          <button type="button" class="sw" data-shell="#3B3D3E" style="background:#3B3D3E" aria-label="Kaskoa: antrazita" aria-pressed="false"></button>
+          <button type="button" class="sw" data-shell="#6F806B" style="background:#6F806B" aria-label="Kaskoa: berdea" aria-pressed="false"></button>
+          <button type="button" class="sw" data-shell="#A8603F" style="background:#A8603F" aria-label="Kaskoa: buztin kolorea" aria-pressed="false"></button>
+        </div>
+        <div class="swatch-row">
+          <span class="lbl">Zura</span>
+          <button type="button" class="sw" data-wood="natural" style="background:#C9A579" aria-label="Zura: haritz naturala" aria-pressed="true"></button>
+          <button type="button" class="sw" data-wood="dark" style="background:#5A3F2B" aria-label="Zura: haritz iluna" aria-pressed="false"></button>
+        </div>
+      </div>
+      <div class="caption">
+        <div>
+          <h2 id="pieceName">Aulkia</h2>
+          <p id="pieceText">Kasko kurbatua eta haritzezko lau hanka. Alkiren eserleku ezagunenen tipologia.</p>
+        </div>
+        <div class="tag">Eredu 3D sinplifikatua · ez da modelo ofiziala</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="facts" aria-label="Datu nagusiak">
+  <div class="fact"><div class="v">1981</div><div class="k">Sorrera urtea</div></div>
+  <div class="fact"><div class="v">Itsasu</div><div class="k">Lantegia, Lapurdi</div></div>
+  <div class="fact"><div class="v">Koop.</div><div class="k">Langileen jabetzakoa</div></div>
+  <div class="fact"><div class="v">Haritza</div><div class="k">Material nagusia</div></div>
+</div>
+
+<main>
+  <section class="row" id="jatorria">
+    <div class="num"><b>01</b>Jatorria</div>
+    <div>
+      <h3>Lanpostuak sortzeko jaio zen kooperatiba</h3>
+      <p>Alki 1981ean sortu zen Itsasun, Ipar Euskal Herrian. Ez zen enpresa arrunt gisa jaio: eskualdean lanpostuak sortu eta tokiko ekonomia bultzatzeko proiektu militante eta kooperatibo bat izan zen.</p>
+      <p>Hasieratik zura izan da ardatza, eta eskulangintza eta natura errespetatzea. Gaur egun, Alkiren altzariak nazioartean saltzen dira, baina ekoizpena Itsasuko lantegian egiten jarraitzen du.</p>
+    </div>
+  </section>
+
+  <section class="row" id="materialak">
+    <div class="num"><b>02</b>Materialak</div>
+    <div>
+      <h3>Zuretik bioplastikora</h3>
+      <p>Haritz masiboa da Alkiren oinarria. Hortik abiatuta, materialen ikerketan sakondu zuten, eta Kuskoa Bi aulkiarekin bioplastikozko kaskoa duen merkatuko lehen aulkia aurkeztu zuten: landare-jatorriko material berriztagarria, zurezko oinarri baten gainean.</p>
+      <div class="cols">
+        <div><h4>Haritz masiboa</h4><p>Iraupen luzeko pieza, konpongarria eta tokian landua.</p></div>
+        <div><h4>Bioplastikoa</h4><p>Landare-jatorriko kaskoa, plastiko fosilaren ordez.</p></div>
+        <div><h4>RSE</h4><p>Ingurumen-erantzukizuna diseinutik bertatik.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row" id="erabilerak">
+    <div class="num"><b>03</b>Erabilerak</div>
+    <div>
+      <h3>Etxetik espazio publikora</h3>
+      <p>Alkiren katalogoak eserlekuak, mahaiak, apalak eta mikro-arkitektura sistemak biltzen ditu. Hiru eremu nagusitan aurki daitezke:</p>
+      <div class="cols">
+        <div><h4>Etxebizitzak</h4><p>Mahaiak, aulkiak eta altzari osagarriak.</p></div>
+        <div><h4>Lan-eremuak</h4><p>Bulego-aulkiak, co-working mahaiak eta sistema modulagarriak.</p></div>
+        <div><h4>Espazio publikoak</h4><p>Ostalaritza eta erakundeak, hala nola Basque Culinary Center (Donostia) eta Champagne Thiénot (Reims).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row" id="diseinua">
+    <div class="num"><b>04</b>Diseinua</div>
+    <div>
+      <h3>Diseinatzaileen eta eskulangileen arteko elkarlana</h3>
+      <p>Alkirentzat diseinua ez da estetika hutsa, nortasun baten adierazpena baizik. Iratzoki Studiok (Jean Louis Iratzoki) gidatzen du zuzendaritza artistikoa, eta Euskal Herriko zein nazioarteko sortzaileekin lan egiten du.</p>
+      <ul class="designers">
+        <li class="lead"><strong>Iratzoki Studio</strong><span>Zuzendaritza artistikoa</span></li>
+        <li>Néstor Basterretxea <span>Diseinatzailea</span></li>
+        <li>Samuel Accoceberry <span>Diseinatzailea</span></li>
+        <li>Patrick Jouin iD <span>Diseinatzailea</span></li>
+        <li>Form Us With Love <span>Estudioa</span></li>
+        <li>Julie Richoz <span>Diseinatzailea</span></li>
+        <li>Patrick Norguet <span>Diseinatzailea</span></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<section class="team" id="taldea">
+  <div class="eyebrow">Egileak · Hemendik proiektua, ahozko komunikazioko ariketa</div>
+  <div class="team-grid">
+    <div class="member"><div class="n">01</div><div class="name">Izaro Urkola</div></div>
+    <div class="member"><div class="n">02</div><div class="name">Aimar Olalde</div></div>
+    <div class="member"><div class="n">03</div><div class="name">Oinatz Oliden</div></div>
+    <div class="member"><div class="n">04</div><div class="name">Ekiñe Perez</div></div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>ALKI · Euskal altzarigintza garaikidea eta balio kooperatiboak · 2026</span>
+  <span>Iturria: <a href="https://alki.fr/en">alki.fr</a> · Ikasle-proiektua, ez da Alkiren webgune ofiziala</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var fallback = document.getElementById('fallback');
+  if (!window.THREE) { fallback.style.display = 'grid'; return; }
+
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  } catch (e) { fallback.style.display = 'grid'; return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.domElement.setAttribute('aria-label', 'Alkiren altzari baten 3D eredu interaktiboa');
+  renderer.domElement.setAttribute('role', 'img');
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(32, 1, 0.05, 50);
+  camera.position.set(1.9, 1.3, 2.3);
+
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.minPolarAngle = 0.25;
+  controls.maxPolarAngle = Math.PI / 2 - 0.04;
+  controls.autoRotate = !reduce;
+  controls.autoRotateSpeed = 0.9;
+
+  // Lights
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d2c6, 0.75));
+  var key = new THREE.DirectionalLight(0xfff4e6, 1.15);
+  key.position.set(2.5, 4, 2);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.left = -2; key.shadow.camera.right = 2;
+  key.shadow.camera.top = 2; key.shadow.camera.bottom = -2;
+  key.shadow.radius = 6;
+  key.shadow.bias = -0.0005;
+  scene.add(key);
+  var fill = new THREE.DirectionalLight(0xe6eef5, 0.35);
+  fill.position.set(-3, 2, -1.5);
+  scene.add(fill);
+
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Procedural oak grain
+  function woodTexture(base, grain) {
+    var c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    var g = c.getContext('2d');
+    g.fillStyle = base; g.fillRect(0, 0, 512, 512);
+    for (var i = 0; i < 160; i++) {
+      var y = Math.random() * 512;
+      var amp = 2 + Math.random() * 6;
+      var freq = 0.004 + Math.random() * 0.01;
+      g.strokeStyle = grain;
+      g.globalAlpha = 0.05 + Math.random() * 0.14;
+      g.lineWidth = 0.6 + Math.random() * 2.2;
+      g.beginPath();
+      for (var x = 0; x <= 512; x += 8) {
+        var yy = y + Math.sin(x * freq + i) * amp;
+        if (x === 0) g.moveTo(x, yy); else g.lineTo(x, yy);
+      }
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    var t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = 4;
+    return t;
+  }
+  var woods = {
+    natural: new THREE.MeshStandardMaterial({ map: woodTexture('#C9A579', '#7a5534'), roughness: 0.62, metalness: 0 }),
+    dark: new THREE.MeshStandardMaterial({ map: woodTexture('#5A3F2B', '#2a1b11'), roughness: 0.58, metalness: 0 })
+  };
+  var shellMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#E7E0D2').convertSRGBToLinear(), roughness: 0.55, metalness: 0, side: THREE.DoubleSide });
+
+  var woodMeshes = [];
+  function wood(mesh) { mesh.material = woods[state.wood]; woodMeshes.push(mesh); mesh.castShadow = true; mesh.receiveShadow = true; return mesh; }
+
+  var UP = new THREE.Vector3(0, 1, 0);
+  function rod(a, b, rTop, rBottom) {
+    var dir = new THREE.Vector3().subVectors(a, b);
+    var len = dir.length();
+    var geo = new THREE.CylinderGeometry(rTop, rBottom, len, 20);
+    var m = new THREE.Mesh(geo);
+    m.position.copy(a).add(b).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(UP, dir.normalize());
+    return wood(m);
+  }
+
+  // Shell: lower hemisphere, flattened into a seat, rim raised toward the back
+  function shell(r, depth, backRise, sideRise) {
+    var g = new THREE.SphereGeometry(r, 72, 36, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2 * 0.96);
+    var p = g.attributes.position;
+    for (var i = 0; i < p.count; i++) {
+      var x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      var t = 1 - (-y) / r;                       // 0 bottom, 1 rim
+      var back = (1 + (-z) / r) / 2;              // 1 at back, 0 at front
+      var side = Math.abs(x) / r;
+      var rise = Math.pow(t, 2.4) * (backRise * Math.pow(back, 2.6) + sideRise * side * back);
+      p.setXYZ(i, x * (1 + 0.06 * t), y * depth + rise, z * (1 + 0.04 * t) + rise * 0.12);
+    }
+    g.computeVertexNormals();
+    var m = new THREE.Mesh(g, shellMat);
+    m.castShadow = true; m.receiveShadow = true;
+    return m;
+  }
+
+  function roundedSlab(w, d, h, rad) {
+    var s = new THREE.Shape();
+    var x = -w / 2, y = -d / 2;
+    s.moveTo(x + rad, y);
+    s.lineTo(x + w - rad, y); s.quadraticCurveTo(x + w, y, x + w, y + rad);
+    s.lineTo(x + w, y + d - rad); s.quadraticCurveTo(x + w, y + d, x + w - rad, y + d);
+    s.lineTo(x + rad, y + d); s.quadraticCurveTo(x, y + d, x, y + d - rad);
+    s.lineTo(x, y + rad); s.quadraticCurveTo(x, y, x + rad, y);
+    var g = new THREE.ExtrudeGeometry(s, { depth: h - 0.008, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 3, curveSegments: 16 });
+    g.rotateX(-Math.PI / 2);
+    // scale UVs so the grain reads at furniture scale
+    var uv = g.attributes.uv;
+    for (var i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 0.9, uv.getY(i) * 0.9);
+    return wood(new THREE.Mesh(g));
+  }
+
+  var V = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+
+  var builders = {
+    chair: function () {
+      var grp = new THREE.Group();
+      var seatY = 0.43, r = 0.27, depth = 0.42;
+      var s = shell(r, depth, 0.52, 0.16);
+      s.position.y = seatY + r * depth;
+      grp.add(s);
+      var plate = wood(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.025, 32)));
+      plate.position.y = seatY - 0.005; grp.add(plate);
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (c) {
+        grp.add(rod(V(c[0] * 0.075, seatY, c[1] * 0.07), V(c[0] * 0.21, 0, c[1] * 0.2), 0.016, 0.011));
+      });
+      return grp;
+    },
+    stool: function () {
+      var grp = new THREE.Group();
+      var seatY = 0.68, r = 0.21, depth = 0.38;
+      var s = shell(r, depth, 0.2, 0.06);
+      s.position.y = seatY + r * depth;
+      grp.add(s);
+      var plate = wood(new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.025, 32)));
+      plate.position.y = seatY - 0.005; grp.add(plate);
+      var tops = [], feet = [];
+      [[1, 1], [1, -1], [-1, -1], [-1, 1]].forEach(function (c) {
+        var a = V(c[0] * 0.065, seatY, c[1] * 0.065), b = V(c[0] * 0.2, 0, c[1] * 0.2);
+        tops.push(a); feet.push(b);
+        grp.add(rod(a, b, 0.015, 0.011));
+      });
+      var fy = 0.27;
+      var ring = tops.map(function (a, i) { var b = feet[i]; var k = (a.y - fy) / (a.y - b.y); return a.clone().lerp(b, k); });
+      for (var i = 0; i < 4; i++) grp.add(rod(ring[i], ring[(i + 1) % 4], 0.009, 0.009));
+      return grp;
+    },
+    table: function () {
+      var grp = new THREE.Group();
+      var top = roundedSlab(1.4, 0.8, 0.034, 0.05);
+      top.position.y = 0.72; grp.add(top);
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (c) {
+        grp.add(rod(V(c[0] * 0.58, 0.72, c[1] * 0.3), V(c[0] * 0.63, 0, c[1] * 0.34), 0.026, 0.017));
+      });
+      var ap = roundedSlab(1.12, 0.05, 0.06, 0.01); ap.position.set(0, 0.66, 0.29); grp.add(ap);
+      var ap2 = ap.clone(); ap2.position.z = -0.29; grp.add(ap2); woodMeshes.push(ap2);
+      return grp;
+    },
+    bench: function () {
+      var grp = new THREE.Group();
+      var top = roundedSlab(1.25, 0.34, 0.04, 0.03);
+      top.position.y = 0.43; grp.add(top);
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (c) {
+        grp.add(rod(V(c[0] * 0.5, 0.43, c[1] * 0.1), V(c[0] * 0.56, 0, c[1] * 0.14), 0.02, 0.014));
+      });
+      var bar = rod(V(-0.53, 0.16, 0), V(0.53, 0.16, 0), 0.011, 0.011);
+      grp.add(bar);
+      return grp;
+    }
+  };
+
+  var info = {
+    chair: ['Aulkia', 'Kasko kurbatua eta haritzezko lau hanka. Alkiren eserleku ezagunenen tipologia.', true],
+    stool: ['Taburete altua', 'Kasko apala, hanka luzeak eta oinentzako euskarria. Sukalde eta barretarako.', true],
+    table: ['Mahaia', 'Haritz masibozko gainazala eta hanka konikoak. Etxerako zein bulegorako.', false],
+    bench: ['Bankua', 'Ohol bakarreko eserlekua, espazio publiko eta ostalaritzarako.', false]
+  };
+  var order = ['chair', 'stool', 'table', 'bench'];
+
+  var state = { piece: 'chair', wood: 'natural' };
+  var current = null, appear = 1;
+
+  function show(name) {
+    if (current) {
+      scene.remove(current);
+      current.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
+    }
+    woodMeshes = [];
+    state.piece = name;
+    current = builders[name]();
+    scene.add(current);
+
+    var box = new THREE.Box3().setFromObject(current);
+    var size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+    var radius = Math.max(size.x, size.y, size.z) * 0.5;
+    var dist = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05;
+    controls.target.set(0, center.y * 0.9, 0);
+    var dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+    camera.position.copy(controls.target).addScaledVector(dir, dist);
+    controls.minDistance = dist * 0.55;
+    controls.maxDistance = dist * 1.8;
+    appear = reduce ? 1 : 0;
+
+    var d = info[name];
+    document.getElementById('pieceName').textContent = d[0];
+    document.getElementById('pieceText').textContent = d[1];
+    document.getElementById('shellRow').hidden = !d[2];
+    document.getElementById('count').textContent = '0' + (order.indexOf(name) + 1) + ' / 04';
+    document.querySelectorAll('[data-piece]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.piece === name)); });
+  }
+
+  document.querySelectorAll('[data-piece]').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.dataset.piece); });
+  });
+  document.querySelectorAll('[data-shell]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      shellMat.color.set(b.dataset.shell).convertSRGBToLinear();
+      document.querySelectorAll('[data-shell]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    });
+  });
+  document.querySelectorAll('[data-wood]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.wood = b.dataset.wood;
+      woodMeshes.forEach(function (m) { m.material = woods[state.wood]; });
+      document.querySelectorAll('[data-wood]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    });
+  });
+  // Pause auto-rotation while the viewer handles the model
+  controls.addEventListener('start', function () { controls.autoRotate = false; });
+
+  function resize() {
+    var w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+  window.addEventListener('resize', resize);
+
+  show('chair');
+  resize();
+
+  function tick() {
+    if (appear < 1) {
+      appear = Math.min(1, appear + 0.045);
+      var e = 1 - Math.pow(1 - appear, 3);
+      current.position.y = (1 - e) * 0.06;
+      current.rotation.y = (1 - e) * -0.5;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+</script>
+</body>
+</html>

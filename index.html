@@ -76,7 +76,7 @@ h1 em { font-style: normal; font-weight: 300; color: var(--oak); }
 .stage canvas:active { cursor: grabbing; }
 .stage .hint {
   position: absolute; left: 20px; top: 18px; font-family: var(--mono); font-size: 11px; color: var(--muted);
-  letter-spacing: 0.05em; pointer-events: none;
+  letter-spacing: 0.05em; pointer-events: none; max-width: calc(100% - 110px);
 }
 .stage .count { position: absolute; right: 20px; top: 18px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .fallback { position: absolute; inset: 0; display: none; place-items: center; padding: 32px; text-align: center; color: var(--muted); }
@@ -466,7 +466,7 @@ main { padding: 0 var(--gutter); }
     chair: function () {
       var grp = new THREE.Group();
       var seatY = 0.43, r = 0.27, depth = 0.42;
-      var s = shell(r, depth, 0.52, 0.16);
+      var s = shell(r, depth, 0.36, 0.12);
       s.position.y = seatY + r * depth;
       grp.add(s);
       var plate = wood(new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.025, 32)));

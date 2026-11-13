@@ -540,15 +540,7 @@ main { padding: 0 var(--gutter); }
     current = builders[name]();
     scene.add(current);
 
-    var box = new THREE.Box3().setFromObject(current);
-    var size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-    var radius = Math.max(size.x, size.y, size.z) * 0.5;
-    var dist = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05;
-    controls.target.set(0, center.y * 0.9, 0);
-    var dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
-    camera.position.copy(controls.target).addScaledVector(dir, dist);
-    controls.minDistance = dist * 0.55;
-    controls.maxDistance = dist * 1.8;
+    fit();
     appear = reduce ? 1 : 0;
 
     var d = info[name];
@@ -578,11 +570,27 @@ main { padding: 0 var(--gutter); }
   // Pause auto-rotation while the viewer handles the model
   controls.addEventListener('start', function () { controls.autoRotate = false; });
 
+  // Frame the whole piece, whatever the viewer's shape
+  function fit() {
+    if (!current) return;
+    var sphere = new THREE.Box3().setFromObject(current).getBoundingSphere(new THREE.Sphere());
+    var vHalf = THREE.MathUtils.degToRad(camera.fov / 2);
+    var hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
+    var dist = sphere.radius / Math.sin(Math.min(vHalf, hHalf)) * 1.08;
+    controls.target.set(0, sphere.center.y * 0.95, 0);
+    var dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+    camera.position.copy(controls.target).addScaledVector(dir, dist);
+    controls.minDistance = dist * 0.55;
+    controls.maxDistance = dist * 1.8;
+  }
+
   function resize() {
     var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    fit();
   }
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
   window.addEventListener('resize', resize);
